@@ -6,6 +6,7 @@ ContainerName=banner
 Image=ghcr.io/closedcircuitconsulting/banner-rs:latest
 PublishPort=8093:8080
 AutoUpdate=registry
+Notify=yes
 
 [Service]
 Restart=on-failure
