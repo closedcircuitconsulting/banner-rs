@@ -1,0 +1,18 @@
+[Unit]
+Description=A single route banner HTTP server
+
+[Container]
+ContainerName=banner
+Image=ghcr.io/closedcircuitconsulting/banner-rs:latest
+PublishPort=8093:8080
+AutoUpdate=registry
+
+[Service]
+Restart=on-failure
+RestartSec=10s
+RestartSteps=5
+RestartMaxDelaySec=1min
+TimeoutStartSec=15min
+
+[Install]
+WantedBy=default.target
