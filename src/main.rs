@@ -1,13 +1,19 @@
 use axum::{Router, routing::get};
 
 const BANNER: &str = r#"
-  ######   ######   ######  
- ##    ## ##    ## ##    ## 
- ##       ##       ##       
- ##       ##       ##       
- ##       ##       ##       
- ##    ## ##    ## ##    ## 
-  ######   ######   ######  
+          ######   ######   ######  
+         ##    ## ##    ## ##    ## 
+         ##       ##       ##       
+         ##       ##       ##       
+         ##       ##       ##       
+         ##    ## ##    ## ##    ## 
+          ######   ######   ######  
+
+          Closed Circuit Consulting
+               Twin Cities, MN            
+  
+  https://git.closedcircuitconsulting.com
+  https://github.com/closedcircuitconsulting
 
 "#;
 
