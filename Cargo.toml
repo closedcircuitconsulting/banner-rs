@@ -1,9 +1,13 @@
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Closed Circuit Consulting
+
 [package]
 name = "banner-rs"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+anyhow = "1.0.105"
 axum = "0.8.8"
 sd-notify = "0.4.5"
-tokio = { version = "1.49.0", features = ["macros", "net", "rt-multi-thread", "time"] }
+tokio = { version = "1.49.0", features = ["macros", "net", "rt-multi-thread", "signal", "time"] }

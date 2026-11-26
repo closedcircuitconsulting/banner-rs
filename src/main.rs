@@ -1,4 +1,10 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Closed Circuit Consulting
+
+use anyhow::{Context, Result};
 use axum::{Router, routing::get};
+use tokio::net::TcpListener;
+use tokio::signal::unix::{SignalKind, signal};
 
 const BANNER: &str = r#"
           ######   ######   ######  
@@ -18,14 +24,29 @@ const BANNER: &str = r#"
 "#;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
+    let addr = "0.0.0.0:8080";
     let app = Router::new().route("/", get(|| async { BANNER }));
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
-    let server_handle = tokio::spawn(async move { axum::serve(listener, app).await });
-    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-    if !server_handle.is_finished() {
-        let _ = sd_notify::notify(true, &[sd_notify::NotifyState::Ready]);
+    let listener = TcpListener::bind(addr)
+        .await
+        .with_context(|| format!("binding to {addr}"))?;
+
+    let mut sigterm = signal(SignalKind::terminate()).context("creating SIGTERM handler")?;
+    let mut sigint = signal(SignalKind::interrupt()).context("creating SIGINT handler")?;
+
+    if let Err(e) = sd_notify::notify(true, &[sd_notify::NotifyState::Ready]) {
+        eprintln!("warning: failed to notify systemd: {e}");
     }
 
-    server_handle.await.unwrap().unwrap();
+    axum::serve(listener, app)
+        .with_graceful_shutdown(async move {
+            tokio::select! {
+                _ = sigterm.recv() => {}
+                _ = sigint.recv() => {}
+            }
+        })
+        .await
+        .context("server error")?;
+
+    Ok(())
 }
