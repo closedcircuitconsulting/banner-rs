@@ -1,4 +1,7 @@
-name: Banner Container (Rust)
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Closed Circuit Consulting
+
+name: Banner Container
 on:
   push:
     tags:
@@ -22,53 +25,55 @@ jobs:
     permissions:
       contents: read
       packages: write
-      attestations: write
-      id-token: write
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v5
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     
     - name: Install QEMU dependency
       run: |
         sudo apt-get update
-        sudo apt-get install -y qemu-user-static
+        sudo apt-get install -y qemu-user-binfmt
 
     - name: Determine tags
       id: tags
+      env:
+        REF: ${{ github.ref }}
+        REF_NAME: ${{ github.ref_name }}
+        SHA: ${{ github.sha }}
       run: |
-        TAGS="${{ github.sha }}"
+        BASE="${IMAGE_REGISTRY}/${IMAGE_NAME}"
+        TAGS="${BASE}:${SHA}"
 
-        if [[ "${{ github.ref }}" == refs/tags/v/* ]]; then
-          VERSION="${{ github.ref_name }}"
-          VERSION="${VERSION#v/}"
-          TAGS="${VERSION} latest ${TAGS}"
+        if [[ "${REF}" == refs/tags/v/* ]]; then
+          VERSION="${REF_NAME#v/}"
+          TAGS="${BASE}:${VERSION} ${BASE}:latest ${TAGS}"
         fi
-        
-        echo "tags=${TAGS}" >> $GITHUB_OUTPUT
+
+        echo "tags=${TAGS}" >> "$GITHUB_OUTPUT"
         echo "Generated tags: ${TAGS}"
+    
+    - name: Get build timestamp
+      id: timestamp
+      run: echo "created=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
     
     - name: Build image
       id: build_image
-      uses: redhat-actions/buildah-build@v2
+      uses: redhat-actions/buildah-build@719e3c40d8af9790c23eca13f7daa339f2867034 # v3.1.0
       with:
-        image: ${{ env.IMAGE_NAME }}
         tags: ${{ steps.tags.outputs.tags }}
-        archs: amd64, arm64, arm/v7
+        archs: amd64, arm64, arm/v7, riscv64
         containerfiles: |
           ./Containerfile
         labels: |
-          org.opencontainers.image.source=https://github.com/${{ github.repository }}
-          org.opencontainers.image.description=Banner server
-          org.opencontainers.image.licenses=MIT
+          org.opencontainers.image.created=${{ steps.timestamp.outputs.created }}
+          org.opencontainers.image.revision=${{ github.sha }}
     
     - name: Push to GHCR
-      uses: redhat-actions/push-to-registry@v2
+      uses: redhat-actions/push-to-registry@94ade333c38ecc0e60e94785125d9a52ca423b37  #v3.0.0
       id: push
       with:
-        image: ${{ steps.build_image.outputs.image }}
-        tags: ${{ steps.build_image.outputs.tags }}
-        registry: ${{ env.IMAGE_REGISTRY }}
+        tags: ${{ steps.tags.outputs.tags }}
         username: ${{ env.REGISTRY_USER }}
         password: ${{ env.REGISTRY_PASSWORD }}
     
